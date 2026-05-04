@@ -4,5 +4,3 @@ dist
 .vscode
 .env
 README.md
-Dockerfile
-nginx.conf
