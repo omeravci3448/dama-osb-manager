@@ -5,7 +5,7 @@ import FactoryList from './components/factories/FactoryList';
 import FinanceModule from './components/finance/FinanceModule';
 import MeterReading from './components/meters/MeterReading';
 import UserManagement from './components/users/UserManagement';
-import SystemLogs from './components/logs/SystemLogs';
+import SystemLogs from './components/logs';
 import Login from './components/auth/Login';
 import { MOCK_FABRIKALAR, MOCK_OKUMALAR, MOCK_FATURALAR } from './data/mockData';
 import { Fabrika, SayacOkuma, Fatura, Kullanici, LogKaydi, Bildirim, Ayarlar } from './types';
@@ -332,10 +332,10 @@ function App() {
           onUpdateFactoryDebt={(id, tutar) => setFactories(prev => prev.map(f => f.id === id ? { ...f, borc: f.borc + tutar } : f))} 
         />;
         case 'finans': return <FinanceModule invoices={invoices} readings={readings} factories={factories} settings={settings} onBatchInvoice={() => { handleBatchInvoice(); showNotification('success', 'Toplu faturalandırma işlemi tamamlandı.'); }} onUpdateInvoice={inv => { setInvoices(prev => prev.map(i => i.id === inv.id ? inv : i)); showNotification('success', 'Fatura güncellendi.'); }} onBatchUpdateInvoices={handleBatchUpdateInvoices} onBatchUpdateReadings={handleBatchUpdateReadings} onGenerateAidat={() => { handleGenerateAidat(); showNotification('success', 'Aidat tahakkukları oluşturuldu.'); }} />;
-        case 'logs': return <SystemLogs logs={logs} onClearLogs={() => { setLogs([]); addLog('Logları Temizleme', 'Tüm sistem logları root tarafından temizlendi.'); }} onDeleteLog={(id) => setLogs(logs.filter(l => l.id !== id))} currentUser={currentUser} />;
-        case 'users': return currentUser.id === 'root' ? <UserManagement users={users} onAdd={u => { setUsers([u, ...users]); addLog('Kullanıcı Ekleme', `${u.adSoyad} oluşturuldu.`); }} onDelete={id => { setUsers(users.filter(i => i.id !== id)); addLog('Kullanıcı Silme', `ID: ${id} silindi.`); }} onUpdate={u => { setUsers(users.map(i => i.id === u.id ? u : i)); addLog('Kullanıcı Güncelleme', `${u.adSoyad} güncellendi.`); }} currentUser={currentUser} /> : null;
+        case 'logs': return <SystemLogs logs={logs} onClearLogs={() => { setLogs([]); addLog('Logları Temizleme', 'Tüm sistem logları root tarafından temizlendi.'); }} onDeleteLog={(id: string) => setLogs(logs.filter(l => l.id !== id))} currentUser={currentUser} />;
+        case 'users': return currentUser.id === 'root' ? <UserManagement users={users} onAdd={u => { setUsers([u, ...users]); addLog('Kullanıcı Ekleme', `${u.adSoyad} oluşturuldu.`); }} onDelete={(id: string) => { setUsers(users.filter(i => i.id !== id)); addLog('Kullanıcı Silme', `ID: ${id} silindi.`); }} onUpdate={u => { setUsers(users.map(i => i.id === u.id ? u : i)); addLog('Kullanıcı Güncelleme', `${u.adSoyad} güncellendi.`); }} currentUser={currentUser} /> : null;
         case 'settings': return (currentUser.rol === 'ROOT' || currentUser.rol === 'OSB_MUDURU') ? <SystemSettings settings={settings} onUpdateSettings={s => { setSettings(s); addLog('Sistem Ayarları', 'Ayarlar güncellendi.'); }} /> : null;
-        default: return <Dashboard factories={factories} readings={readings} invoices={invoices} user={currentUser} notifications={notifications} onCloseNotification={id => setNotifications(n => n.filter(x => x.id !== id))} />;
+        default: return <Dashboard factories={factories} readings={readings} invoices={invoices} user={currentUser} notifications={notifications} onCloseNotification={(id: string) => setNotifications(n => n.filter(x => x.id !== id))} />;
       }
     } catch (err) {
       return <div style={{ color: 'white', padding: '20px' }}>Bir hata oluştu: {String(err)}</div>;
