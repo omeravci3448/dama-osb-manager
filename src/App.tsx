@@ -364,7 +364,7 @@ function App() {
         />;
       
       case 'users': 
-        return currentUser.id === 'root' ? <UserManagement 
+        return (currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') ? <UserManagement 
           users={users} 
           onAdd={async u => { 
             const newUser = await apiService.createUser(u);

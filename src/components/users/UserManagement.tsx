@@ -109,7 +109,7 @@ const UserManagement: React.FC<Props> = ({ users, onAdd, onDelete, onUpdate, cur
                     <button onClick={() => { setEditingUser(user); setFormData(user); setIsModalOpen(true); }} style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'white' }}>
                       <Edit2 size={16} />
                     </button>
-                    {user.id !== 'root' && user.id !== currentUser.id && (
+                    {user.kullaniciAdi !== 'root' && user.id !== currentUser.id && (
                       <button onClick={() => onDelete(user.id)} style={{ padding: '8px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--secondary)' }}>
                         <Trash2 size={16} />
                       </button>
