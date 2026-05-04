@@ -48,7 +48,7 @@ const FinanceModule: React.FC<Props> = ({ invoices, readings, factories, setting
           toplamTutar: tutar + kdv,
           sonOdemeTarihi: r.okumaTarihi, // Geçici tarih
           durum: 'TAHAKKUK' as const,
-          tip: 'ELEKTRIK' as const,
+          tip: 'SU' as const,
           muhasebeAktarildi: r.muhasebeAktarildi || false,
           recordType: 'ACCRUAL' as const,
           originalReadingId: r.id
@@ -147,7 +147,7 @@ const FinanceModule: React.FC<Props> = ({ invoices, readings, factories, setting
             </button>
           )}
           <button onClick={() => onBatchInvoice()} className="glow-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }}>
-            <Receipt size={20} /> Toplu Tahakkuk (Elektrik)
+            <Receipt size={20} /> Toplu Tahakkuk (Su)
           </button>
         </div>
       </div>
@@ -301,7 +301,7 @@ const FinanceModule: React.FC<Props> = ({ invoices, readings, factories, setting
                               r.fabrikaId === rec.fabrikaId && 
                               (r.okumaTarihi.includes(rec.donem.split(' ')[0]) || r.okumaTarihi.includes(rec.donem.split(' ')[1]))
                             );
-                            if (fab) generateFaturaPDF(rec, fab, reading, settings.elektrikBirimFiyat);
+                            if (fab) generateFaturaPDF(rec, fab, reading, settings.suBirimFiyat + settings.atikSuBirimFiyat);
                           }} 
                           style={actionBtnStyle} 
                           title="PDF İndir"

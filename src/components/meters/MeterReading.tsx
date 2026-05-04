@@ -120,7 +120,8 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
       }
     }
 
-    const tutarNet = tuketim * settings.elektrikBirimFiyat;
+    // Su Bedeli + Atık Su Bedeli
+    const tutarNet = tuketim * (settings.suBirimFiyat + settings.atikSuBirimFiyat);
     const kdv = tutarNet * 0.20;
     const toplamTutar = tutarNet + kdv;
     const faturaDurumu = settings.otomatikTahakkuk ? 'TAHAKKUK_EDILDI' : 'BEKLIYOR';
@@ -134,7 +135,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
       tuketim: tuketim,
       okuyanPersonel: 'Saha Personeli',
       faturaDurumu,
-      hesaplananTutar: tutarNet // Net tutarı saklamaya devam edelim
+      hesaplananTutar: tutarNet
     };
 
     if (isAnomaly) {
@@ -163,7 +164,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
       const now = new Date();
       onAddNotification({
         id: Math.random().toString(36).substr(2, 9),
-        mesaj: `${fab?.ad} firmasında normal dışı tüketim saptandı! (${anomalyReason}) Tüketim: ${reading.tuketim} kWh. Saha personeli operatör onayıyla kaydetti.`,
+        mesaj: `${fab?.ad} firmasında normal dışı tüketim saptandı! (${anomalyReason}) Tüketim: ${reading.tuketim} m³. Saha personeli operatör onayıyla kaydetti.`,
         tarih: `${now.toLocaleDateString('tr-TR')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
         okundu: false,
         ilgiliFabrikaId: reading.fabrikaId,
@@ -183,7 +184,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
     const fab = factories.find(f => f.id === lastReading.fabrikaId);
     if (!fab) return;
     
-    const msg = `Sayın ${fab.sahibi}, ${lastReading.okumaTarihi} tarihli sayaç okumanız yapılmıştır. \nSon Endeks: ${lastReading.sonEndeks} \nTüketim: ${lastReading.tuketim} kWh. \nİyi çalışmalar dileriz.`;
+    const msg = `Sayın ${fab.sahibi}, ${lastReading.okumaTarihi} tarihli sayaç okumanız yapılmıştır. \nSon Endeks: ${lastReading.sonEndeks} \nTüketim: ${lastReading.tuketim} m³. \nİyi çalışmalar dileriz.`;
     sendWhatsAppMessage(fab.yetkililer[0]?.telefon || '', msg);
   };
 
@@ -194,7 +195,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
     if (!fab) return;
 
     const tuketim = (val - editingReading.ilkEndeks) * fab.carpan;
-    const tutarNet = tuketim * settings.elektrikBirimFiyat;
+    const tutarNet = tuketim * (settings.suBirimFiyat + settings.atikSuBirimFiyat);
     
     const updated: SayacOkuma = {
       ...editingReading,
@@ -282,7 +283,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
             <p style={{ marginBottom: '16px' }}>
               Girdiğiniz endekse göre hesaplanan tüketim miktarı, <strong>{anomalyReason}</strong>
               <br/><br/>
-              Hesaplanan Tüketim: <strong>{pendingReading.tuketim} kWh</strong>
+              Hesaplanan Tüketim: <strong>{pendingReading.tuketim} m³</strong>
               <br/>
               Eğer değerlerin doğru olduğundan eminseniz işlemi onaylayın. OSB Müdürüne bilgilendirme mesajı gönderilecektir.
             </p>
@@ -380,7 +381,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
                       <div style={{ fontWeight: 'bold' }}>{r.sonEndeks}</div>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>{r.tuketim.toLocaleString()} kWh</div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>{r.tuketim.toLocaleString()} m³</div>
                       {fab?.carpan !== 1 && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>x{fab?.carpan} çarpan dahil</div>}
                     </td>
                     <td style={{ padding: '12px 16px' }}>

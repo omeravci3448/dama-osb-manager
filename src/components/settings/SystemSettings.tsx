@@ -57,6 +57,28 @@ const SystemSettings: React.FC<Props> = ({ settings, onUpdateSettings }) => {
           <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={20} color="var(--primary)" /> Fiyatlandırma
           </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Su Birim Fiyatı (TL/m³)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                value={formData.suBirimFiyat} 
+                onChange={e => setFormData({...formData, suBirimFiyat: parseFloat(e.target.value)})} 
+                style={inputStyle} 
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Atık Su Bedeli (TL/m³)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                value={formData.atikSuBirimFiyat} 
+                onChange={e => setFormData({...formData, atikSuBirimFiyat: parseFloat(e.target.value)})} 
+                style={inputStyle} 
+              />
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Elektrik Birim Fiyatı (TL/kWh)</label>

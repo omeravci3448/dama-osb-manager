@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Factory, Zap, Receipt, Settings, Search, Bell, Users, LogOut, ShieldCheck, History, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Factory, Zap, Receipt, Settings, Search, Bell, Users, LogOut, ShieldCheck, History, AlertTriangle, Loader2 } from 'lucide-react';
 import Dashboard from './components/dashboard/Dashboard';
 import FactoryList from './components/factories/FactoryList';
 import FinanceModule from './components/finance/FinanceModule';
@@ -7,10 +7,9 @@ import MeterReading from './components/meters/MeterReading';
 import UserManagement from './components/users/UserManagement';
 import SystemLogs from './components/system-logs/SystemLogs';
 import Login from './components/auth/Login';
-import { MOCK_FABRIKALAR, MOCK_OKUMALAR, MOCK_FATURALAR } from './data/mockData';
 import { Fabrika, SayacOkuma, Fatura, Kullanici, LogKaydi, Bildirim, Ayarlar } from './types';
 import SystemSettings from './components/settings/SystemSettings';
-import { generateTahakkukRaporu } from './utils/helpers';
+import { apiService } from './services/api';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<Kullanici | null>(() => {
@@ -22,115 +21,89 @@ function App() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // States
+  const [factories, setFactories] = useState<Fabrika[]>([]);
+  const [readings, setReadings] = useState<SayacOkuma[]>([]);
+  const [invoices, setInvoices] = useState<Fatura[]>([]);
+  const [users, setUsers] = useState<Kullanici[]>([]);
+  const [logs, setLogs] = useState<LogKaydi[]>([]);
+  const [notifications, setNotifications] = useState<Bildirim[]>([]);
+  const [settings, setSettings] = useState<Ayarlar | null>(null);
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
   };
-  
-  // Güvenli State Başlatma
-  const [factories, setFactories] = useState<Fabrika[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_factories');
-      return saved ? JSON.parse(saved) : MOCK_FABRIKALAR;
-    } catch { return MOCK_FABRIKALAR; }
-  });
 
-  const [readings, setReadings] = useState<SayacOkuma[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_readings');
-      return saved ? JSON.parse(saved) : MOCK_OKUMALAR;
-    } catch { return MOCK_OKUMALAR; }
-  });
-
-  const [invoices, setInvoices] = useState<Fatura[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_invoices');
-      return saved ? JSON.parse(saved) : MOCK_FATURALAR;
-    } catch { return MOCK_FATURALAR; }
-  });
-
-  const [users, setUsers] = useState<Kullanici[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_users');
-      const initialUsers: Kullanici[] = [
-        { id: 'root', kullaniciAdi: 'root', sifre: '11223344.', adSoyad: 'Ömer AVCI', unvan: 'System Manager', rol: 'ROOT', sifreDegistirilmeli: false }
-      ];
-      return saved ? JSON.parse(saved) : initialUsers;
-    } catch { return []; }
-  });
-
-  const [logs, setLogs] = useState<LogKaydi[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_logs');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  const [notifications, setNotifications] = useState<Bildirim[]>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  const [settings, setSettings] = useState<Ayarlar>(() => {
-    try {
-      const saved = localStorage.getItem('osb_v2_settings');
-      return saved ? JSON.parse(saved) : { otomatikTahakkuk: false, elektrikBirimFiyat: 2.45, aidatBirimFiyat: 1000, odemeVadesi: 10 };
-    } catch { return { otomatikTahakkuk: false, elektrikBirimFiyat: 2.45, aidatBirimFiyat: 1000, odemeVadesi: 10 }; }
-  });
-
+  // Initial Data Fetch
   useEffect(() => {
-    // Bir kerelik temizlik işlemi (Deneme verilerini siler)
-    const isCleaned = localStorage.getItem('osb_v2_presentation_ready');
-    if (!isCleaned) {
-      setFactories([]);
-      setReadings([]);
-      setInvoices([]);
-      setLogs([]);
-      setNotifications([]);
-      localStorage.setItem('osb_v2_presentation_ready', 'true');
-      localStorage.removeItem('osb_v2_factories');
-      localStorage.removeItem('osb_v2_readings');
-      localStorage.removeItem('osb_v2_invoices');
-      localStorage.removeItem('osb_v2_logs');
-      localStorage.removeItem('osb_v2_notifications');
-    }
-  }, []);
+    const loadInitialData = async () => {
+      try {
+        setIsLoading(true);
+        // Login ekranı için gerekli olanlar
+        const [uData, sData] = await Promise.all([
+          apiService.getUsers(),
+          apiService.getSettings()
+        ]);
+        setUsers(uData);
+        setSettings(sData);
 
-  // Root kullanıcı unvanını güncelle (Eski veri kalmışsa)
-  useEffect(() => {
-    if (currentUser?.id === 'root' && currentUser.unvan !== 'System Manager') {
-      const updatedRoot = { ...currentUser, unvan: 'System Manager' };
-      setCurrentUser(updatedRoot);
-      setUsers(prev => prev.map(u => u.id === 'root' ? updatedRoot : u));
-    }
+        // Eğer kullanıcı varsa geri kalanını yükle
+        if (currentUser) {
+          const [fData, rData, iData, lData, nData] = await Promise.all([
+            apiService.getFactories(),
+            apiService.getReadings(),
+            apiService.getInvoices(),
+            apiService.getLogs(),
+            apiService.getNotifications()
+          ]);
+          setFactories(fData);
+          setReadings(rData);
+          setInvoices(iData);
+          setLogs(lData);
+          setNotifications(nData);
+        }
+      } catch (error) {
+        console.error('Data load error:', error);
+        showNotification('error', 'Veriler yüklenirken bir hata oluştu.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
   }, [currentUser]);
 
-  // Kalıcılık
+
+  // Auth Persistence
   useEffect(() => {
-    localStorage.setItem('osb_v2_factories', JSON.stringify(factories));
-    localStorage.setItem('osb_v2_readings', JSON.stringify(readings));
-    localStorage.setItem('osb_v2_invoices', JSON.stringify(invoices));
-    localStorage.setItem('osb_v2_users', JSON.stringify(users));
-    localStorage.setItem('osb_v2_logs', JSON.stringify(logs));
-    localStorage.setItem('osb_v2_notifications', JSON.stringify(notifications));
-    localStorage.setItem('osb_v2_settings', JSON.stringify(settings));
     if (currentUser) {
       localStorage.setItem('osb_v2_current_user', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('osb_v2_current_user');
     }
-  }, [factories, readings, invoices, users, logs, notifications, currentUser]);
+  }, [currentUser]);
 
-  const addLog = (islem: string, detay: string, userOverride?: Kullanici) => {
+  const addLog = async (islem: string, detay: string, userOverride?: Kullanici) => {
     const user = userOverride || currentUser;
-    if (!user || user.id === 'root') return;
+    if (!user) return;
     const now = new Date();
     const dateStr = `${now.toLocaleDateString('tr-TR')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const newLog: LogKaydi = { id: Math.random().toString(36).substr(2, 9), kullaniciId: user.id, kullaniciAdSoyad: user.adSoyad, islem, detay, tarih: dateStr };
-    setLogs(prev => [newLog, ...prev]);
+    
+    try {
+      const newLog = await apiService.createLog({
+        kullaniciId: user.id,
+        kullaniciAdSoyad: user.adSoyad,
+        islem,
+        detay,
+        tarih: dateStr
+      });
+      setLogs(prev => [newLog, ...prev]);
+    } catch (error) {
+      console.error('Log error:', error);
+    }
   };
 
   const handleLogin = (user: Kullanici) => {
@@ -142,10 +115,11 @@ function App() {
   const handleLogout = () => {
     if (currentUser) addLog('Sistemden Çıkış', `${currentUser.adSoyad} sistemden güvenli çıkış yaptı.`);
     setCurrentUser(null);
-    localStorage.removeItem('osb_current_user');
   };
 
-  const handleBatchInvoice = (selectedIds?: string[]) => {
+  const handleBatchInvoice = async (selectedIds?: string[]) => {
+    if (!settings) return;
+
     const pendingReadings = readings.filter(r => {
       const isPending = r.faturaDurumu === 'BEKLIYOR' || r.faturaDurumu === 'TAHAKKUK_EDILDI';
       if (!isPending) return false;
@@ -157,193 +131,288 @@ function App() {
 
     if (pendingReadings.length === 0) return;
 
-    const newInvoices: Fatura[] = [];
-    let updatedFactories = [...factories];
-
-    const updatedReadings: SayacOkuma[] = readings.map(r => {
-      // Sadece seçili olanları işle
-      const isSelected = pendingReadings.some(pr => pr.id === r.id);
-      
-      if (isSelected) {
-        const tutar = r.hesaplananTutar || (r.tuketim * settings.elektrikBirimFiyat);
+    try {
+      for (const r of pendingReadings) {
+        const tutar = r.hesaplananTutar || (r.tuketim * (settings.suBirimFiyat + settings.atikSuBirimFiyat));
         const kdv = tutar * 0.20;
         const toplamTutar = tutar + kdv;
         
-        // Ödeme vadesini ayarlara göre hesapla
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + settings.odemeVadesi);
         const formattedDueDate = dueDate.toLocaleDateString('tr-TR');
         
-        const newInvoice: Fatura = {
-          id: Math.random().toString(36).substr(2, 9),
+        const newInvoice = await apiService.createInvoice({
           fabrikaId: r.fabrikaId,
           donem: new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
-          tutar: tutar,
-          kdv: kdv,
-          toplamTutar: toplamTutar,
+          tutar,
+          kdv,
+          toplamTutar,
           sonOdemeTarihi: formattedDueDate,
           durum: 'BEKLIYOR',
-          tip: 'ELEKTRIK'
-        };
-        newInvoices.push(newInvoice);
+          tip: 'SU'
+        });
 
+        // Update reading status
+        const updatedReading = await apiService.updateReading(r.id, { ...r, faturaDurumu: 'FATURALANDI' });
+        
+        // Update factory debt if needed
         if (r.faturaDurumu === 'BEKLIYOR') {
-          // Hiç tahakkuk etmemişse (otomatik kapalıysa), KDV dahil tam tutarı carisine ekle
-          updatedFactories = updatedFactories.map(f => f.id === r.fabrikaId ? { ...f, borc: f.borc + toplamTutar } : f);
-        } else if (r.faturaDurumu === 'TAHAKKUK_EDILDI') {
-          // Zaten otomatik tahakkuk ile KDV dahil tutar carisine eklenmişti. 
-          // Sadece faturayı oluşturuyoruz, caride ek işlem yapmıyoruz.
+          const factory = factories.find(f => f.id === r.fabrikaId);
+          if (factory) {
+            await apiService.updateFactory(factory.id, { ...factory, borc: factory.borc + toplamTutar });
+          }
         }
 
-        return { ...r, faturaDurumu: 'FATURALANDI' };
+        setInvoices(prev => [newInvoice, ...prev]);
+        setReadings(prev => prev.map(item => item.id === r.id ? updatedReading : item));
       }
-      return r;
-    });
-
-    setReadings(updatedReadings);
-    setInvoices([...newInvoices, ...invoices]);
-    setFactories(updatedFactories);
-    addLog('Toplu Fatura', `${newInvoices.length} adet yeni fatura oluşturuldu ve carilere yansıtıldı.`);
+      
+      // Refresh factories to get updated debts
+      const updatedFactories = await apiService.getFactories();
+      setFactories(updatedFactories);
+      
+      addLog('Toplu Fatura', `${pendingReadings.length} adet yeni fatura oluşturuldu ve carilere yansıtıldı.`);
+      showNotification('success', 'Toplu faturalandırma işlemi tamamlandı.');
+    } catch (error) {
+      showNotification('error', 'Faturalandırma sırasında bir hata oluştu.');
+    }
   };
 
-  const handleBatchUpdateInvoices = (updatedInvoices: Fatura[]) => {
-    setInvoices(prev => prev.map(inv => {
-      const updated = updatedInvoices.find(u => u.id === inv.id);
-      return updated ? updated : inv;
-    }));
-    addLog('Toplu Muhasebe', `${updatedInvoices.length} adet fatura muhasebeye aktarıldı.`);
-  };
-
-  const handleBatchUpdateReadings = (updatedReadings: SayacOkuma[]) => {
-    setReadings(prev => prev.map(r => {
-      const updated = updatedReadings.find(u => u.id === r.id);
-      return updated ? updated : r;
-    }));
-    addLog('Toplu Muhasebe (Okuma)', `${updatedReadings.length} adet okuma raporu muhasebeye aktarıldı.`);
-  };
-
-  const handleGenerateAidat = () => {
+  const handleGenerateAidat = async () => {
+    if (!settings) return;
     const activeFactories = factories.filter(f => f.aktif);
     const donem = new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
     
-    // Son ödeme tarihini ilgili ayın son günü yapalım
     const now = new Date();
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const formattedDueDate = lastDayOfMonth.toLocaleDateString('tr-TR');
 
-    const newAidatInvoices: Fatura[] = [];
-    let updatedFactories = [...factories];
+    let count = 0;
+    try {
+      for (const fab of activeFactories) {
+        const exists = invoices.some(inv => inv.fabrikaId === fab.id && inv.donem === donem && inv.tip === 'AIDAT');
+        
+        if (!exists) {
+          const tutar = settings.aidatBirimFiyat;
+          const kdv = tutar * 0.20;
+          const toplamTutar = tutar + kdv;
 
-    activeFactories.forEach(fab => {
-      const exists = invoices.some(inv => inv.fabrikaId === fab.id && inv.donem === donem && inv.tip === 'AIDAT');
-      
-      if (!exists) {
-        const tutar = settings.aidatBirimFiyat;
-        const kdv = tutar * 0.20;
-        const toplamTutar = tutar + kdv;
+          const newInvoice = await apiService.createInvoice({
+            fabrikaId: fab.id,
+            donem,
+            tutar,
+            kdv,
+            toplamTutar,
+            sonOdemeTarihi: formattedDueDate,
+            durum: 'BEKLIYOR',
+            tip: 'AIDAT'
+          });
 
-        newAidatInvoices.push({
-          id: Math.random().toString(36).substr(2, 9),
-          fabrikaId: fab.id,
-          donem: donem,
-          tutar: tutar,
-          kdv: kdv,
-          toplamTutar: toplamTutar,
-          sonOdemeTarihi: formattedDueDate,
-          durum: 'BEKLIYOR',
-          tip: 'AIDAT'
-        });
-
-        updatedFactories = updatedFactories.map(f => f.id === fab.id ? { ...f, borc: f.borc + toplamTutar } : f);
+          await apiService.updateFactory(fab.id, { ...fab, borc: fab.borc + toplamTutar });
+          setInvoices(prev => [newInvoice, ...prev]);
+          count++;
+        }
       }
-    });
 
-    if (newAidatInvoices.length > 0) {
-      setInvoices(prev => [...newAidatInvoices, ...prev]);
-      setFactories(updatedFactories);
-      addLog('Aidat Tahakkuku', `${newAidatInvoices.length} adet yeni aidat kaydı oluşturuldu.`);
-      alert(`${newAidatInvoices.length} adet yeni aidat kaydı başarıyla oluşturuldu.`);
-    } else {
-      alert('Bu dönemin aidatları zaten tüm işletmeler için oluşturulmuş.');
+      if (count > 0) {
+        const updatedFactories = await apiService.getFactories();
+        setFactories(updatedFactories);
+        addLog('Aidat Tahakkuku', `${count} adet yeni aidat kaydı oluşturuldu.`);
+        showNotification('success', `${count} adet yeni aidat kaydı başarıyla oluşturuldu.`);
+      } else {
+        showNotification('error', 'Bu dönemin aidatları zaten tüm işletmeler için oluşturulmuş.');
+      }
+    } catch (error) {
+      showNotification('error', 'Aidat tahakkuku sırasında bir hata oluştu.');
     }
   };
 
   const renderContent = () => {
-    if (!currentUser) return null;
-    try {
-      switch (activeTab) {
-        case 'dashboard': return <Dashboard factories={factories} readings={readings} invoices={invoices} user={currentUser} notifications={notifications} onCloseNotification={id => setNotifications(n => n.filter(x => x.id !== id))} />;
-        case 'fabrikalar': return <FactoryList 
+    if (!currentUser || !settings) return null;
+    
+    switch (activeTab) {
+      case 'dashboard': 
+        return <Dashboard 
           factories={factories} 
           readings={readings} 
-          onAdd={f => { try { setFactories(prev => [f, ...prev]); addLog('Fabrika Ekleme', `${f.ad} eklendi.`); showNotification('success', 'İşletme başarıyla kaydedildi.'); } catch (e) { showNotification('error', 'Kayıt sırasında bir hata oluştu.'); } }} 
-          onUpdate={f => { try { setFactories(prev => prev.map(i => i.id === f.id ? f : i)); addLog('Fabrika Güncelleme', `${f.ad} güncellendi.`); showNotification('success', 'İşletme bilgileri güncellendi.'); } catch (e) { showNotification('error', 'Güncelleme sırasında bir hata oluştu.'); } }} 
-          onDelete={id => { 
+          invoices={invoices} 
+          user={currentUser} 
+          notifications={notifications} 
+          onCloseNotification={async id => {
+            await apiService.deleteNotification(id);
+            setNotifications(prev => prev.filter(x => x.id !== id));
+          }} 
+        />;
+      
+      case 'fabrikalar': 
+        return <FactoryList 
+          factories={factories} 
+          readings={readings} 
+          onAdd={async f => { 
+            const newFab = await apiService.createFactory(f);
+            setFactories(prev => [newFab, ...prev]); 
+            addLog('Fabrika Ekleme', `${f.ad} eklendi.`); 
+            showNotification('success', 'İşletme başarıyla kaydedildi.'); 
+          }} 
+          onUpdate={async f => { 
+            const updatedFab = await apiService.updateFactory(f.id, f);
+            setFactories(prev => prev.map(i => i.id === f.id ? updatedFab : i)); 
+            addLog('Fabrika Güncelleme', `${f.ad} güncellendi.`); 
+            showNotification('success', 'İşletme bilgileri güncellendi.'); 
+          }} 
+          onDelete={async id => { 
             const isRoot = currentUser.id === 'root' || currentUser.rol === 'ROOT';
-            const hasReadings = readings.some(r => r.fabrikaId === id);
-            const hasInvoices = invoices.some(i => i.fabrikaId === id);
-
-            if (!isRoot && (hasReadings || hasInvoices)) {
-              showNotification('error', 'Bu işletmeye ait sayaç okuma veya fatura kaydı bulunduğu için silemezsiniz. Lütfen Root yöneticisine başvurun.');
-              return;
+            if (window.confirm('İşletmeyi silmek istediğinize emin misiniz?')) {
+              await apiService.deleteFactory(id);
+              setFactories(prev => prev.filter(i => i.id !== id));
+              setReadings(prev => prev.filter(r => r.fabrikaId !== id));
+              setInvoices(prev => prev.filter(i => i.fabrikaId !== id));
+              addLog('Fabrika Silme', `ID: ${id} silindi.`); 
+              showNotification('success', 'İşletme sistemden silindi.'); 
             }
-
-            if (window.confirm(isRoot ? 'Bu işletmeyi ve tüm ilişkili verilerini (sayaç okumaları, faturalar) silmek istediğinize emin misiniz? BU İŞLEM GERİ ALINAMAZ!' : 'İşletmeyi silmek istediğinize emin misiniz?')) {
-              try {
-                // Eğer root siliyorsa ilişkili her şeyi sil
-                if (isRoot) {
-                  setReadings(prev => prev.filter(r => r.fabrikaId !== id));
-                  setInvoices(prev => prev.filter(i => i.fabrikaId !== id));
-                }
-                setFactories(prev => prev.filter(i => i.id !== id));
-                addLog('Fabrika Silme', `ID: ${id} silindi.`); 
-                showNotification('success', 'İşletme ' + (isRoot ? 've tüm ilişkili verileri ' : '') + 'sistemden silindi.'); 
-              } catch (err) {
-                console.error('Silme hatası:', err);
-                showNotification('error', 'Silme işlemi başarısız oldu.');
-              }
-            }
-        }} onAddReading={r => setReadings(prev => [r, ...prev])} currentUser={currentUser} />;
-        case 'sayac': return <MeterReading 
+          }} 
+          onAddReading={async r => {
+            const newReading = await apiService.createReading(r);
+            setReadings(prev => [newReading, ...prev]);
+          }} 
+          currentUser={currentUser} 
+        />;
+      
+      case 'sayac': 
+        return <MeterReading 
           factories={factories} 
           readings={readings} 
           settings={settings} 
           currentUser={currentUser}
-          onAddReading={r => { try { setReadings(prev => [r, ...prev]); addLog('Sayaç Okuma', 'Yeni kayıt girildi.'); showNotification('success', 'Sayaç okuma kaydı başarıyla eklendi.'); } catch (e) { showNotification('error', 'Kayıt eklenirken bir hata oluştu.'); } }} 
-          onUpdateReading={r => { try { setReadings(prev => prev.map(i => i.id === r.id ? r : i)); addLog('Sayaç Güncelleme', 'Kayıt düzeltildi.'); showNotification('success', 'Sayaç okuma kaydı güncellendi.'); } catch (e) { showNotification('error', 'Güncelleme sırasında bir hata oluştu.'); } }} 
-          onDeleteReading={id => { 
-            const reading = readings.find(r => r.id === id);
-            if (!reading) return;
-            const isRoot = currentUser.id === 'root' || currentUser.rol === 'ROOT';
-            const isLocked = reading.faturaDurumu === 'FATURALANDI';
-
-            if (isLocked && !isRoot) {
-              showNotification('error', 'Faturalanmış kayıtları sadece Root yetkilisi silebilir.');
-              return;
-            }
-
+          onAddReading={async r => { 
+            const newReading = await apiService.createReading(r);
+            setReadings(prev => [newReading, ...prev]); 
+            addLog('Sayaç Okuma', 'Yeni kayıt girildi.'); 
+            showNotification('success', 'Sayaç okuma kaydı başarıyla eklendi.'); 
+          }} 
+          onUpdateReading={async r => { 
+            const updatedReading = await apiService.updateReading(r.id, r);
+            setReadings(prev => prev.map(i => i.id === r.id ? updatedReading : i)); 
+            addLog('Sayaç Güncelleme', 'Kayıt düzeltildi.'); 
+            showNotification('success', 'Sayaç okuma kaydı güncellendi.'); 
+          }} 
+          onDeleteReading={async id => { 
             if(window.confirm('Kayıt silinsin mi?')) { 
+              await apiService.deleteReading(id);
               setReadings(prev => prev.filter(i => i.id !== id)); 
               addLog('Sayaç Silme', `ID: ${id} silindi.`); 
               showNotification('success', 'Kayıt silindi.'); 
             } 
           }} 
-          onAddNotification={n => setNotifications(prev => [n, ...prev])} 
-          onUpdateFactoryDebt={(id, tutar) => setFactories(prev => prev.map(f => f.id === id ? { ...f, borc: f.borc + tutar } : f))} 
+          onAddNotification={async n => {
+            const newNotification = await apiService.createNotification(n);
+            setNotifications(prev => [newNotification, ...prev]);
+          }} 
+          onUpdateFactoryDebt={async (id, tutar) => {
+            const factory = factories.find(f => f.id === id);
+            if (factory) {
+              const updatedFab = await apiService.updateFactory(id, { ...factory, borc: factory.borc + tutar });
+              setFactories(prev => prev.map(f => f.id === id ? updatedFab : f));
+            }
+          }} 
         />;
-        case 'finans': return <FinanceModule invoices={invoices} readings={readings} factories={factories} settings={settings} onBatchInvoice={() => { handleBatchInvoice(); showNotification('success', 'Toplu faturalandırma işlemi tamamlandı.'); }} onUpdateInvoice={inv => { setInvoices(prev => prev.map(i => i.id === inv.id ? inv : i)); showNotification('success', 'Fatura güncellendi.'); }} onBatchUpdateInvoices={handleBatchUpdateInvoices} onBatchUpdateReadings={handleBatchUpdateReadings} onGenerateAidat={() => { handleGenerateAidat(); showNotification('success', 'Aidat tahakkukları oluşturuldu.'); }} />;
-        case 'logs': return <SystemLogs logs={logs} onClearLogs={() => { setLogs([]); addLog('Logları Temizleme', 'Tüm sistem logları root tarafından temizlendi.'); }} onDeleteLog={(id: string) => setLogs(logs.filter(l => l.id !== id))} currentUser={currentUser} />;
-        case 'users': return currentUser.id === 'root' ? <UserManagement users={users} onAdd={u => { setUsers([u, ...users]); addLog('Kullanıcı Ekleme', `${u.adSoyad} oluşturuldu.`); }} onDelete={(id: string) => { setUsers(users.filter(i => i.id !== id)); addLog('Kullanıcı Silme', `ID: ${id} silindi.`); }} onUpdate={u => { setUsers(users.map(i => i.id === u.id ? u : i)); addLog('Kullanıcı Güncelleme', `${u.adSoyad} güncellendi.`); }} currentUser={currentUser} /> : null;
-        case 'settings': return (currentUser.rol === 'ROOT' || currentUser.rol === 'OSB_MUDURU') ? <SystemSettings settings={settings} onUpdateSettings={s => { setSettings(s); addLog('Sistem Ayarları', 'Ayarlar güncellendi.'); }} /> : null;
-        default: return <Dashboard factories={factories} readings={readings} invoices={invoices} user={currentUser} notifications={notifications} onCloseNotification={(id: string) => setNotifications(n => n.filter(x => x.id !== id))} />;
-      }
-    } catch (err) {
-      return <div style={{ color: 'white', padding: '20px' }}>Bir hata oluştu: {String(err)}</div>;
+      
+      case 'finans': 
+        return <FinanceModule 
+          invoices={invoices} 
+          readings={readings} 
+          factories={factories} 
+          settings={settings} 
+          onBatchInvoice={handleBatchInvoice} 
+          onUpdateInvoice={async inv => { 
+            const updatedInv = await apiService.updateInvoice(inv.id, inv);
+            setInvoices(prev => prev.map(i => i.id === inv.id ? updatedInv : i)); 
+            showNotification('success', 'Fatura güncellendi.'); 
+          }} 
+          onBatchUpdateInvoices={async (updatedInvoices) => {
+            for (const inv of updatedInvoices) {
+              await apiService.updateInvoice(inv.id, inv);
+            }
+            const freshInvoices = await apiService.getInvoices();
+            setInvoices(freshInvoices);
+            addLog('Toplu Muhasebe', `${updatedInvoices.length} adet fatura muhasebeye aktarıldı.`);
+          }} 
+          onBatchUpdateReadings={async (updatedReadings) => {
+            for (const r of updatedReadings) {
+              await apiService.updateReading(r.id, r);
+            }
+            const freshReadings = await apiService.getReadings();
+            setReadings(freshReadings);
+            addLog('Toplu Muhasebe (Okuma)', `${updatedReadings.length} adet okuma raporu muhasebeye aktarıldı.`);
+          }} 
+          onGenerateAidat={handleGenerateAidat} 
+        />;
+      
+      case 'logs': 
+        return <SystemLogs 
+          logs={logs} 
+          onClearLogs={async () => { 
+            await apiService.clearLogs();
+            setLogs([]); 
+            addLog('Logları Temizleme', 'Tüm sistem logları root tarafından temizlendi.'); 
+          }} 
+          onDeleteLog={async (id: string) => {
+            // No specific delete log in API yet, just refresh
+            setLogs(logs.filter(l => l.id !== id));
+          }} 
+          currentUser={currentUser} 
+        />;
+      
+      case 'users': 
+        return currentUser.id === 'root' ? <UserManagement 
+          users={users} 
+          onAdd={async u => { 
+            const newUser = await apiService.createUser(u);
+            setUsers([newUser, ...users]); 
+            addLog('Kullanıcı Ekleme', `${u.adSoyad} oluşturuldu.`); 
+          }} 
+          onDelete={async (id: string) => { 
+            await apiService.deleteUser(id);
+            setUsers(users.filter(i => i.id !== id)); 
+            addLog('Kullanıcı Silme', `ID: ${id} silindi.`); 
+          }} 
+          onUpdate={async u => { 
+            const updatedUser = await apiService.updateUser(u.id, u);
+            setUsers(users.map(i => i.id === u.id ? updatedUser : i)); 
+            addLog('Kullanıcı Güncelleme', `${u.adSoyad} güncellendi.`); 
+          }} 
+          currentUser={currentUser} 
+        /> : null;
+      
+      case 'settings': 
+        return (currentUser.rol === 'ROOT' || currentUser.rol === 'OSB_MUDURU') ? <SystemSettings 
+          settings={settings} 
+          onUpdateSettings={async s => { 
+            const updatedSettings = await apiService.updateSettings(settings.id, s);
+            setSettings(updatedSettings); 
+            addLog('Sistem Ayarları', 'Ayarlar güncellendi.'); 
+            showNotification('success', 'Ayarlar güncellendi.');
+          }} 
+        /> : null;
+      
+      default: return null;
     }
   };
 
   if (!currentUser) {
-    return <Login onLogin={handleLogin} users={users} onUpdateUser={u => setUsers(users.map(i => i.id === u.id ? u : i))} />;
+    return <Login onLogin={handleLogin} users={users} onUpdateUser={async u => {
+      const updatedUser = await apiService.updateUser(u.id, u);
+      setUsers(users.map(i => i.id === u.id ? updatedUser : i));
+    }} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+        <Loader2 className="animate-spin" size={48} color="#c28247" />
+        <p style={{ marginTop: '16px', fontSize: '1.1rem', color: '#94a3b8' }}>Veriler Yükleniyor...</p>
+      </div>
+    );
   }
 
   return (
@@ -431,3 +500,4 @@ function SidebarItem({ icon, label, active, onClick }: any) {
 }
 
 export default App;
+

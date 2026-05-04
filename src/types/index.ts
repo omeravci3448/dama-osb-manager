@@ -95,7 +95,10 @@ export interface LogKaydi {
 }
 
 export interface Ayarlar {
+  id: string;
   otomatikTahakkuk: boolean;
+  suBirimFiyat: number;
+  atikSuBirimFiyat: number;
   elektrikBirimFiyat: number;
   aidatBirimFiyat: number;
   odemeVadesi: number; // Gün cinsinden

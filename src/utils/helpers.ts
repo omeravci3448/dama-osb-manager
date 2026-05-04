@@ -83,7 +83,7 @@ export const generateEndeksKarti = (reading: SayacOkuma, factory: Fabrika) => {
       [tr('Okuma Tarihi'), reading.okumaTarihi],
       [tr('İlk Endeks'), `${reading.ilkEndeks.toLocaleString()} (Index)`],
       [tr('Son Endeks'), `${reading.sonEndeks.toLocaleString()} (Index)`],
-      [tr('Toplam Tüketim'), `${reading.tuketim.toLocaleString()} kWh`],
+      [tr('Toplam Tüketim'), `${reading.tuketim.toLocaleString()} m³`],
       [tr('Okuyan Personel'), tr(reading.okuyanPersonel)]
     ];
 
@@ -167,7 +167,7 @@ export const generateTahakkukRaporu = (invoices: Fatura[], factories: Fabrika[],
         read?.ilkEndeks.toLocaleString() || '-',
         read?.sonEndeks.toLocaleString() || '-',
         `x${fab?.carpan || 1}`,
-        `${read?.tuketim.toLocaleString() || '0'} kWh`,
+        `${read?.tuketim.toLocaleString() || '0'} m³`,
         `${inv.tutar.toLocaleString('tr-TR')} TL`,
         `${inv.kdv.toLocaleString('tr-TR')} TL`,
         `${inv.toplamTutar.toLocaleString('tr-TR')} TL`,
@@ -237,7 +237,7 @@ export const generateTahakkukRaporu = (invoices: Fatura[], factories: Fabrika[],
   }
 };
 
-const addDetailedPage = (doc: jsPDF, inv: Fatura, fab: Fabrika, reading?: SayacOkuma, unitPrice: number = 3.20) => {
+const addDetailedPage = (doc: jsPDF, inv: Fatura, fab: Fabrika, reading?: SayacOkuma, unitPrice: number = 7.70) => {
   doc.addPage();
   
   // Header
@@ -283,8 +283,8 @@ const addDetailedPage = (doc: jsPDF, inv: Fatura, fab: Fabrika, reading?: SayacO
     [tr('İlk Endeks'), reading ? `${reading.ilkEndeks.toLocaleString()} (Index)` : '-'],
     [tr('Son Endeks'), reading ? `${reading.sonEndeks.toLocaleString()} (Index)` : '-'],
     [tr('Çarpan Katsayısı'), `x${fab.carpan}`],
-    [tr('Toplam Tüketim'), reading ? `${reading.tuketim.toLocaleString()} kWh` : '-'],
-    [tr('Birim Fiyat'), `${unitPrice.toLocaleString('tr-TR')} TL/kWh`], 
+    [tr('Toplam Tüketim'), reading ? `${reading.tuketim.toLocaleString()} m³` : '-'],
+    [tr('Birim Fiyat'), `${unitPrice.toLocaleString('tr-TR')} TL/m³`], 
     [tr('Matrah'), `${inv.tutar.toLocaleString('tr-TR')} TL`],
     [tr('KDV (%20)'), `${inv.kdv.toLocaleString('tr-TR')} TL`],
     [{ content: tr('TOPLAM'), styles: { fontStyle: 'bold' } }, { content: `${inv.toplamTutar.toLocaleString('tr-TR')} TL`, styles: { fontStyle: 'bold' } }]
@@ -333,11 +333,11 @@ export const generateMuhasebeAktarimRaporu = (invoices: Fatura[], factories: Fab
       return [
         tr(fab?.ad || '-'),
         tr(inv.donem),
-        isAidat ? tr('SABIT') : `${read?.tuketim.toLocaleString('tr-TR') || '0'} kWh`,
+        isAidat ? tr('SABIT') : `${read?.tuketim.toLocaleString('tr-TR') || '0'} m³`,
         `${inv.tutar.toLocaleString('tr-TR')} TL`,
         `${inv.kdv.toLocaleString('tr-TR')} TL`,
         `${inv.toplamTutar.toLocaleString('tr-TR')} TL`,
-        tr(inv.tip === 'AIDAT' ? 'Aidat' : 'Elektrik')
+        tr(inv.tip === 'AIDAT' ? 'Aidat' : 'Su')
       ];
     });
 
@@ -383,7 +383,7 @@ export const generateMuhasebeAktarimRaporu = (invoices: Fatura[], factories: Fab
 
       if (fab) {
         doc.addPage('a4', 'p'); // Dikey sayfa ekle
-        addDetailedPage(doc, inv, fab, reading, 3.20); // Burada 3.20 varsayılan kalsın ya da settings'den gelmeli
+        addDetailedPage(doc, inv, fab, reading, 7.70); // 7.70 varsayılan su bedeli
       }
     });
 
@@ -394,7 +394,7 @@ export const generateMuhasebeAktarimRaporu = (invoices: Fatura[], factories: Fab
   }
 };
 
-export const generateFaturaPDF = (invoice: Fatura, factory: Fabrika, reading?: SayacOkuma, unitPrice: number = 3.20) => {
+export const generateFaturaPDF = (invoice: Fatura, factory: Fabrika, reading?: SayacOkuma, unitPrice: number = 7.70) => {
   try {
     const doc = new jsPDF();
     setupTurkishFont(doc);
@@ -418,7 +418,7 @@ export const generateFaturaPDF = (invoice: Fatura, factory: Fabrika, reading?: S
     const isAidat = invoice.tip === 'AIDAT';
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
-    doc.text(tr(isAidat ? 'ŞUHUT OSB AİDAT TAHAKKUK BELGESİ' : 'ŞUHUT OSB ELEKTRİK FATURASI DÖKÜMÜ'), 115, 25, { align: 'center' });
+    doc.text(tr(isAidat ? 'ŞUHUT OSB AİDAT TAHAKKUK BELGESİ' : 'ŞUHUT OSB SU FATURASI DÖKÜMÜ'), 115, 25, { align: 'center' });
 
 
     // Bilgiler
@@ -451,9 +451,9 @@ export const generateFaturaPDF = (invoice: Fatura, factory: Fabrika, reading?: S
       [tr('İlk Endeks'), reading ? `${reading.ilkEndeks.toLocaleString()} (Index)` : '-'],
       [tr('Son Endeks'), reading ? `${reading.sonEndeks.toLocaleString()} (Index)` : '-'],
       [tr('Çarpan Katsayısı'), `x${factory.carpan}`],
-      [tr('Toplam Tüketim'), reading ? `${reading.tuketim.toLocaleString()} kWh` : '-'],
-      [tr('Birim Fiyat'), `${unitPrice.toLocaleString('tr-TR')} TL/kWh`], 
-      [tr('Elektrik Tüketim Bedeli (Matrah)'), `${invoice.tutar.toLocaleString('tr-TR')} TL`],
+      [tr('Toplam Tüketim'), reading ? `${reading.tuketim.toLocaleString()} m³` : '-'],
+      [tr('Birim Fiyat'), `${unitPrice.toLocaleString('tr-TR')} TL/m³`], 
+      [tr('Su Tüketim Bedeli (Matrah)'), `${invoice.tutar.toLocaleString('tr-TR')} TL`],
       [tr('KDV (%20)'), `${invoice.kdv.toLocaleString('tr-TR')} TL`],
       [{ content: tr('GENEL TOPLAM'), styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, { content: `${invoice.toplamTutar.toLocaleString('tr-TR')} TL`, styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }]
     ];
