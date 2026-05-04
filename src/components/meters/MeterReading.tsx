@@ -411,7 +411,7 @@ const MeterReading: React.FC<Props> = ({ factories, readings, settings, currentU
                         >
                           <FileText size={16} />
                         </button>
-                        {!isLocked || (currentUser.id === 'root' || currentUser.rol === 'ROOT') ? (
+                        {!isLocked || (currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') ? (
                           <>
                             {!isLocked && (
                               <button 

@@ -433,7 +433,7 @@ function App() {
           <SidebarItem icon={<Zap size={20} />} label="Sayaç Okuma" active={activeTab === 'sayac'} onClick={() => setActiveTab('sayac')} />
           <SidebarItem icon={<Receipt size={20} />} label="Finans & Aidat" active={activeTab === 'finans'} onClick={() => setActiveTab('finans')} />
           <SidebarItem icon={<History size={20} />} label="Sistem Logları" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
-          {currentUser.id === 'root' && (
+          {(currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') && (
             <>
               <div style={{ height: '1px', background: 'var(--border-color)', margin: '16px 0' }}></div>
               <SidebarItem icon={<ShieldCheck size={20} />} label="Kullanıcı Yönetimi" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
@@ -477,7 +477,7 @@ function App() {
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '0.9rem', fontWeight: '700' }}>{currentUser.adSoyad}</p>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{currentUser.id === 'root' ? 'System Manager' : currentUser.unvan}</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{(currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') ? 'System Manager' : currentUser.unvan}</p>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
               {currentUser.adSoyad?.[0] || '?'}

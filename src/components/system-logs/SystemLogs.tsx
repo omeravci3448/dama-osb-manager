@@ -18,7 +18,7 @@ const SystemLogs: React.FC<Props> = ({ logs, onClearLogs, onDeleteLog, currentUs
           <p style={{ color: 'var(--text-muted)' }}>Sistemde yapılan tüm giriş, çıkış ve veri değişikliklerini takip edin.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {currentUser.id === 'root' && logs.length > 0 && (
+          {(currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') && logs.length > 0 && (
             <button 
               onClick={() => window.confirm('Tüm sistem loglarını kalıcı olarak silmek istediğinize emin misiniz?') && onClearLogs()}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--secondary)', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.1)', padding: '10px 16px', borderRadius: '12px' }}
@@ -48,7 +48,7 @@ const SystemLogs: React.FC<Props> = ({ logs, onClearLogs, onDeleteLog, currentUs
               <th style={{ padding: '16px 20px', color: 'var(--text-muted)' }}>Kullanıcı</th>
               <th style={{ padding: '16px 20px', color: 'var(--text-muted)' }}>İşlem</th>
               <th style={{ padding: '16px 20px', color: 'var(--text-muted)' }}>Detay</th>
-              {currentUser.id === 'root' && <th style={{ padding: '16px 20px', color: 'var(--text-muted)', textAlign: 'right' }}>İşlem</th>}
+              {(currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') && <th style={{ padding: '16px 20px', color: 'var(--text-muted)', textAlign: 'right' }}>İşlem</th>}
             </tr>
           </thead>
           <tbody>
@@ -81,7 +81,7 @@ const SystemLogs: React.FC<Props> = ({ logs, onClearLogs, onDeleteLog, currentUs
                   <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                     {log.detay}
                   </td>
-                  {currentUser.id === 'root' && (
+                  {(currentUser.rol === 'ROOT' || currentUser.kullaniciAdi === 'root') && (
                     <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                       <button 
                         onClick={() => onDeleteLog(log.id)}
