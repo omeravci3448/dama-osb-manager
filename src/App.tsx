@@ -88,7 +88,7 @@ function App() {
 
   const addLog = async (islem: string, detay: string, userOverride?: Kullanici) => {
     const user = userOverride || currentUser;
-    if (!user) return;
+    if (!user || user.kullaniciAdi === 'root') return;
     const now = new Date();
     const dateStr = `${now.toLocaleDateString('tr-TR')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     

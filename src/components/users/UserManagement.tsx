@@ -69,7 +69,7 @@ const UserManagement: React.FC<Props> = ({ users, onAdd, onDelete, onUpdate, cur
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {users.filter(u => u.kullaniciAdi !== 'root').map((user) => (
               <tr key={user.id} className="table-row-hover" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td style={{ padding: '16px 20px' }}>
                   <div style={{ fontWeight: '600' }}>{user.adSoyad}</div>
