@@ -5,7 +5,7 @@ import FactoryList from './components/factories/FactoryList';
 import FinanceModule from './components/finance/FinanceModule';
 import MeterReading from './components/meters/MeterReading';
 import UserManagement from './components/users/UserManagement';
-import SystemLogs from './components/logs';
+import SystemLogs from './components/system-logs/SystemLogs';
 import Login from './components/auth/Login';
 import { MOCK_FABRIKALAR, MOCK_OKUMALAR, MOCK_FATURALAR } from './data/mockData';
 import { Fabrika, SayacOkuma, Fatura, Kullanici, LogKaydi, Bildirim, Ayarlar } from './types';
